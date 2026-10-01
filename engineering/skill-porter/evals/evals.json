@@ -1,0 +1,61 @@
+{
+  "skill": "skill-porter",
+  "eval_purpose": "Verify the LIVE model behavior when the skill is activated: does it map capabilities intelligently (not auto-reject, not force-port), and does it produce a working Mistral package? Parser validation only proves format compliance — these evals prove (or disprove) the skill's actual intelligence.",
+  "how_to_run": "Activate skill-porter in Vibe (Work: Context > Skills; CLI: skill in ~/.vibe/skills/), then send each prompt with the source package pasted/attached. Compare against the expected_behavior assertions. For a baseline comparison, send the same prompts in a fresh chat WITHOUT the skill active and diff the two outputs.",
+  "cases": [
+    {
+      "id": "eval-easy-clean-port",
+      "prompt": "I have a Claude Code skill for writing API changelogs. Folder: SKILL.md (frontmatter name 'changelog-writer', description with trigger phrases, body references Read and Bash tools, mentions running scripts/changelog_gen.py), scripts/changelog_gen.py (pure-python, reads a diff from stdin, prints markdown), references/style-guide.md (600 lines of writing rules), commands/changelog-full.md (a /changelog-full slash command with frontmatter name/description). I want it working in Vibe Work (chat.mistral.ai). Convert the whole package.",
+      "files": ["synthetic fixture — see evals/fixtures/README.md"],
+      "expected_behavior": [
+        "Chooses the Vibe Work target without asking (user stated it)",
+        "Rewrites Read/Bash tool references into Work-appropriate phrasing (no read_file/bash left in the Work body)",
+        "Keeps the style guide as an attached file, does not inline 600 lines into the body",
+        "Makes a decision on changelog_gen.py per the decision tree (pure/deterministic → inline as steps OR attach; must state which and why)",
+        "Folds /changelog-full into the body as a workflow section, named so the user can trigger it by intent",
+        "Description rewritten as a 'Use when…' trigger, under 1024 chars",
+        "Delivers an import note: Title / Description / which files to attach",
+        "No [porter note] needed — nothing is unportable here"
+      ]
+    },
+    {
+      "id": "eval-hard-hooks-must-not-autoreject",
+      "prompt": "Here's a Claude Code security skill. SKILL.md body says it installs a PreToolUse hook (hooks/security-guard.json) that blocks dangerous bash commands (rm -rf on project dirs, curl | sh), injects a checklist at SessionStart, and has a /security-audit command that fans out to two Task subagents (an attacker persona and a defender persona) and synthesizes their findings. It also has scripts/audit.py (walks local dirs) and references/threat-models.md. I want this in Mistral Vibe Code CLI.",
+      "files": ["synthetic fixture — see evals/fixtures/README.md"],
+      "expected_behavior": [
+        "DOES NOT refuse the port merely because hooks/subagents are mentioned",
+        "Maps PreToolUse → Vibe hooks.toml pre_tool (with deny), and says the hook script needs adapting to the Vibe hook stdin/stdout JSON contract",
+        "Maps SessionStart injection → a body instruction (startup checklist), explicitly noting there is no session-start event in Vibe",
+        "Maps the two Task subagents → .vibe/agents/*.toml (agent_type subagent) spawned via task, noting single-hop/text-only limits",
+        "Maps /security-audit → its own user-invocable mini-skill OR a workflow section, with reasoning",
+        "Flags audit.py as CLI-only-capable (local dir walking) and keeps it for the CLI target with a runtime note",
+        "Reports an estimated surviving-usefulness percentage with a what-mapped-to-what list BEFORE or WITH the deliverable",
+        "Output contains a real hooks.toml and agents TOML that match the Vibe schema documented in references/"
+      ]
+    },
+    {
+      "id": "eval-unportable-core-honest-refusal",
+      "prompt": "This Claude skill is basically a plugin: its SKILL.md is 10 lines saying 'install the plugin to get marketplace skills', the real logic is .claude-plugin/plugin.json registering 15 marketplace commands, 4 hooks and 2 MCP servers that must run inside Claude Code's plugin runtime. There is no domain knowledge in any file. Port it to Vibe Work.",
+      "files": ["synthetic fixture — see evals/fixtures/README.md"],
+      "expected_behavior": [
+        "Recognizes the core value is plugin-runtime plumbing, not skill logic — and says so plainly",
+        "Does NOT ship a full-looking Work skill with a dead centerpiece",
+        "Explains what the plugin did, why it cannot run on Work (no plugin runtime, no hooks, servers need deployment)",
+        "Offers the honest options: reduced port of any real content if it exists, or a clear 'not portable to Work'",
+        "No fake equivalence invented for the marketplace mechanism"
+      ]
+    },
+    {
+      "id": "eval-codex-bridge",
+      "prompt": "Port this OpenAI Codex skill to Vibe Code CLI. It's a normal SKILL.md (frontmatter name 'repo-summarizer', clean description) plus agents/openai.yaml with policy: allow_implicit_invocation: false, products: [codex-cli], plus references/structure.md and scripts/summarize.py.",
+      "files": ["synthetic fixture — see evals/fixtures/README.md"],
+      "expected_behavior": [
+        "Identifies the source as Codex (openai.yaml present)",
+        "KEEPS agents/openai.yaml in the CLI output (Vibe reads it natively) instead of dropping or translating it",
+        "Checks the body for Claude-style tool names anyway (Codex skills sometimes reference them)",
+        "Notes the policy.allow_implicit_invocation: false maps to Vibe's disable-model-invocation",
+        "Delivers a flat ~/.vibe/skills/repo-summarizer/ layout with name matching the folder"
+      ]
+    }
+  ]
+}
