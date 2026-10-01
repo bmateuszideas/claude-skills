@@ -17,6 +17,22 @@ intelligence work, not a file copy: you must understand **what the skill is
 trying to accomplish**, then re-express it so a Mistral model executes it
 correctly.
 
+## Epistemic rule: verify against the platform, never assume
+
+You are converting between fast-moving platforms. Your training data may be
+stale, and your instincts about what a platform "surely doesn't have" are
+not evidence. Before declaring any capability missing on a Mistral target,
+check the references attached to this skill (they were extracted from the
+Mistral Vibe source and the official docs) and, when working live, ask the
+user to confirm against current docs. Known false assumptions to avoid:
+"Work has no code execution" (it does: Code Interpreter, Python/TS),
+"Work can't produce files" (Canvas produces editable, versioned text/data/
+code/presentation documents, and the interpreter exports downloadable files),
+"skills can't be created from inside Work" (the built-in `skill-creator`
+skill does exactly that). The correct stance is: map to what the target
+demonstrably has, and when genuinely unsure, verify — do not amputate a
+skill's capability on an unverified assumption.
+
 ## Rule zero: map capabilities intelligently — never force-port, never auto-reject
 
 Mistral is not a replica of Anthropic's platform — but it is not a barren
@@ -38,11 +54,11 @@ same intent?" Often the same result is reachable by a different route
 | Bundled MCP servers | Vibe Code: `.vibe/mcp.json` config; Work: Connectors. The *server* is infrastructure, not skill logic — port the skill to consume the tools, and tell the user the server must be deployed/configured separately. |
 | `.claude-plugin/` manifest, marketplace | No equivalent. Drop; the skill itself is the unit on Mistral. |
 | Per-tool permission policies | Vibe agents' `[tools.<name>] permission` tables and skill-level `allowed-tools` frontmatter. |
-| Shell/env variables embedded in body text and paths (`${RESEARCH_DIR}`, `$(date +%Y-%m-%d)`, `~/.pulse_sessions/`) | These assume a shell + persistent filesystem. CLI target: keep, they work under `bash`. Work/API target: replace every one — output paths become "produce the briefing in the chat/Canvas", state directories become conversation state (see stateful scripts below). Never leave a `${VAR}` reference in a Work body. |
+| Shell/env variables embedded in body text and paths (`${RESEARCH_DIR}`, `$(date +%Y-%m-%d)`, `~/.pulse_sessions/`) | These assume a shell on the user's machine. CLI target: keep, they work under `bash`. Work/API target: replace every one — output deliverables go to **Canvas** or downloadable files produced via the Code Interpreter, state directories become conversation state (see stateful scripts below). Never leave a `${VAR}` reference in a Work body. |
 | **Formula-maskable scripts** (a long script whose core is one deterministic formula or rule — e.g. a 300-line RICE calculator that is really `(Reach × Impact × Confidence) / Effort` plus CSV plumbing) | CLI: keep the script. Work/API: do NOT attach the script — replace every usage example in the body with the formula/rule written out as an instruction ("for each feature compute R = R×I×C/E, rank in a table") plus a worked example using the skill's own sample data asset. Report the substitution. |
 | **Text-analysis scripts** (heuristically parse transcripts/notes into insights — e.g. an interview analyzer) | CLI: keep. Work/API: replace with an explicit analysis instruction in the body (input format → what to extract → output structure). The model reading the transcript natively is usually *better* than the heuristic script — say that in the report; this is a capability upgrade, not a degradation. |
 | **Script-flag examples in the body** (bash blocks showing `python scripts/x.py input.csv --capacity 15 --output json > out.json`, `sample` subcommands that generate working files) | CLI: keep, they run under `bash`. Work/API: rewrite each block — flags become instruction parameters ("with a capacity of 15…"), output redirects become "produce the table/JSON in your answer", and `sample`-generator subcommands are replaced by pointing at the skill's example data assets. |
-| **Stateful scripts** (a script whose *value* is persisting state across workflow steps: counters, session logs, dedup caches, e.g. `citation_tracker.py` writing `~/.pulse_sessions/<id>.json`) | CLI: keep as-is. Work/API: the filesystem persistence is unportable — port the *tally* into the body as an explicit "running state" pattern the model maintains in the conversation (e.g. a three-count table: queries sent / sources received / sources cited, updated at each phase). Name the pattern in the report; do not attach the script and pretend it runs. |
+| **Stateful scripts** (a script whose *value* is persisting state across workflow steps: counters, session logs, dedup caches, e.g. `citation_tracker.py` writing `~/.pulse_sessions/<id>.json`) | CLI: keep as-is. Work/API: the user's-machine persistence is unportable — port the *tally* into the body as an explicit "running state" pattern the model maintains in the conversation (e.g. a three-count table: queries sent / sources received / sources cited, updated at each phase), or persist via Canvas versioning. Name the pattern in the report; do not attach the script and pretend it runs against the user's disk. |
 | `model:` field (persona tuned to a specific Claude model) | Drop the pin; note behavioral calibration may shift and watch for it in self-review. |
 | `context: fork` on an agent (subagent runs in a forked session) | Vibe subagents run as fresh independent sessions by design — the isolation intent is already the default; drop the field and verify the agent's prompt is self-contained (no reliance on parent-session state). |
 | Platform branding in the body ("Claude Code", "this plugin", "works with Codex") | Rewrite to the target's name ("Vibe", "this skill") or neutral "your agent". Also sweep asset/template filenames like CLAUDE.md.template: keep the file if it seeds an AGENTS.md-style instruction doc, but rename or re-point it (Vibe reads AGENTS.md, not CLAUDE.md) and update every reference to it. |
@@ -63,7 +79,7 @@ same intent?" Often the same result is reachable by a different route
 
 | Target | Where it runs | What you deliver |
 |---|---|---|
-| **Vibe Work** (chat.mistral.ai, Work tab) | Online chat. Skills live in `Context > Skills`. No filesystem tools. | A folder: rewritten `SKILL.md` + supporting files, ready to paste into the New Skill form (Title / Description / SKILL.md body / attached files). Progressive disclosure: description decides auto-activation; body loads on activation; attached files load on demand. |
+| **Vibe Work** (chat.mistral.ai, Work tab) | Online chat. Skills live in `Context > Skills`. **Real capabilities (verified in Mistral docs — do not assume less):** uploaded Files become task context; **Canvas** is a built-in editor where Work produces and iterates on text, data, code, and presentations (multiple canvases per chat, version control, manual editing, `/canvas`); **Code Interpreter** runs Python and TypeScript in a sandbox (pandas, numpy, matplotlib preinstalled; conversation's uploaded files available; no internet inside the sandbox; paid plans, rate-limited); a built-in **skill-creator** skill manages Skills in-context. | A folder: rewritten `SKILL.md` + supporting files, ready to paste into the New Skill form (Title / Description / SKILL.md body / attached files). Progressive disclosure: description decides auto-activation; body loads on activation; attached files load on demand. |
 | **Vibe Code CLI** | Terminal coding agent. Skills live at `~/.vibe/skills/<name>/` (user) or `./.vibe/skills/` (project). Full filesystem access via tools. | A folder with converted `SKILL.md` (flat layout — one directory per skill directly under `skills/`, no nesting), preserving `scripts/`, `references/`, `assets/`. |
 | **Mistral Skills API** (console.mistral.ai, Studio) | Cloud, versioned, shareable. | A JSON body for `POST /v2/skills` (see schema below), or — simpler — a skill created in Studio `Build > Skills` then `Publish to Vibe`. |
 
@@ -86,7 +102,7 @@ reference in `SKILL.md`, `references/*`, `commands/*` and rewrite it:
 | `Read` | `read_file` | "read the attached file" / paste content into the task |
 | `Write` | `write_file` | produce the content in the response / Canvas |
 | `Edit`, `MultiEdit` | `search_replace`, `edit` | regenerate the full corrected content |
-| `Bash`, `Shell` | `bash` | Code Interpreter (if available) or rewrite as explicit step-by-step instructions |
+| `Bash`, `Shell` | `bash` | Work runs command logic via **Code Interpreter** (Python/TS sandbox, conversation files accessible) — port the shell command as an equivalent Python snippet, or as step-by-step instructions when no interpreter; deliverables land in **Canvas** (text, data, code — editable, versioned, multi-tab) |
 | `Grep` / `Glob` | `grep` | instruct the model to search within the pasted/attached material |
 | `WebSearch` | `web_search` | web search feature / `deep-research` pattern |
 | `WebFetch` | `web_fetch` | fetch URL content if available; else ask user to paste |
@@ -119,7 +135,8 @@ explaining the original intent, so the user can review.
      Work: if short and pure, inline its logic as numbered instructions or a
      worked example; if complex, keep the script as an attached file with
      `isExecutable: true` in the Skills API and an instruction to run it via
-     Code Interpreter; if it needs the local filesystem, mark it as
+     Code Interpreter; if it needs the user's local machine (their disk, their
+     processes), mark it as
      "CLI-only capability" and say so in the report.
    - `commands/*.md` — each becomes, for Vibe Code, its own mini-skill
      (`<skill>-<command>/SKILL.md` with `user-invocable: true`); for Vibe
