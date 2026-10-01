@@ -39,6 +39,9 @@ same intent?" Often the same result is reachable by a different route
 | `.claude-plugin/` manifest, marketplace | No equivalent. Drop; the skill itself is the unit on Mistral. |
 | Per-tool permission policies | Vibe agents' `[tools.<name>] permission` tables and skill-level `allowed-tools` frontmatter. |
 | `model:` field (persona tuned to a specific Claude model) | Drop the pin; note behavioral calibration may shift and watch for it in self-review. |
+| `context: fork` on an agent (subagent runs in a forked session) | Vibe subagents run as fresh independent sessions by design — the isolation intent is already the default; drop the field and verify the agent's prompt is self-contained (no reliance on parent-session state). |
+| Platform branding in the body ("Claude Code", "this plugin", "works with Codex") | Rewrite to the target's name ("Vibe", "this skill") or neutral "your agent". Also sweep asset/template filenames like CLAUDE.md.template: keep the file if it seeds an AGENTS.md-style instruction doc, but rename or re-point it (Vibe reads AGENTS.md, not CLAUDE.md) and update every reference to it. |
+| Cross-reference tables in the body listing source-platform commands (`/wiki-ingest <path>` etc.) | After converting commands to mini-skills/workflows, rewrite the table to the NEW invocation map on the target — a stale table pointing at Claude commands is a silent failure. |
 
 ### How to reason (the part no table can do for you)
 
@@ -49,17 +52,7 @@ same intent?" Often the same result is reachable by a different route
    different route, or body-instruction the model itself enforces.
 3. **Compose.** One Claude mechanism may need two Mistral pieces (hook →
    `pre_tool` + a body rule); several Claude mechanisms may collapse into one.
-4. **Score honestly.** Estimate what fraction of the skill's *usefulness*
-   survives (not its file count). 90%? Port, and say what the missing 10% was.
-   50%? Port, and mark the degraded paths clearly in the body. Core mechanism
-   genuinely unexpressible? Say so — but only after you have tried the map,
-   not because the file mentioned a hook and you flinched.
-
-Do **not** auto-reject a skill just because it contains Claude-specific
-buzzwords (hooks, agents, plugins). Most skills carry portable domain
-knowledge plus a thin layer of plumbing — the plumbing is what you map. A
-forced port that ships a dead centerpiece is a failure; so is a lazy refusal
-of an 80%-portable skill. Deliver the honest maximum.
+4. **Score honestly — twice.** First **per element** (mechanism by mechanism). Then **for the whole skill**: ask "where does this skill's core value actually live — in knowledge, or in a local environment?" A skill like a personal-wiki maintainer can be 100% portable knowledge for the CLI target and yet nearly useless on Work, because its whole point is operating on a folder of files on a local disk. The Work port still has value (methodology, structures, prompts) but the model must name that class of gap explicitly in the report: "on Work this skill works as a methodology, not as a file tool." Estimate the surviving usefulness fraction for BOTH dimensions — content and operating environment — before delivering. 90%? Port, and say what the missing 10% was. Core mechanism genuinely unexpressible on the chosen target? Say so — but only after you have tried the map, not because the file mentioned a hook and you flinched. A forced port that ships a dead centerpiece is a failure; so is a lazy refusal of an 80%-portable skill. Deliver the honest maximum.
 
 ## The three Mistral targets (pick from user intent, ask only if unclear)
 
@@ -135,6 +128,8 @@ explaining the original intent, so the user can review.
    trigger phrases, keep the strongest ones within the 1024-char budget.
 
 ## Output contract per target
+
+- **For the Work target, also manage the file-count limit**: Work caps the number of attached files. When the package has many (a rule of thumb: more than ~10), merge related files — e.g. collapse 8 `references/*.md` into 2-3 focused ones, fold small page templates into one `templates.md` — and update every body reference to the merged paths. Never silently drop a referenced file.
 
 ### Vibe Work (online chat) — deliverable
 ```
