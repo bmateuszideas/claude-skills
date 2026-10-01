@@ -17,6 +17,57 @@ intelligence work, not a file copy: you must understand **what the skill is
 trying to accomplish**, then re-express it so a Mistral model executes it
 correctly.
 
+## Rule zero: do not force-port — assess feasibility first
+
+Mistral is not a replica of Anthropic's platform. Some Claude skills depend on
+infrastructure that does not exist on Mistral, and a forced port produces a
+package that *looks* converted but silently fails. Before rewriting anything,
+run a **feasibility assessment** and report it honestly.
+
+### Hard blockers (skill cannot be ported to the chosen target)
+
+- **Claude Code hooks** (`PreToolUse`, `PostToolUse`, `hooks/*.json`) — Vibe
+  Work and the Skills API have no hook mechanism; only Vibe Code has limited
+  hook config. A skill whose core value is a hook is unportable to Work/API.
+- **Multi-agent orchestration beyond one hop** — Claude `Task` subagents that
+  spawn further subagents with tool permissions per agent. Mistral subagents
+  exist (`.vibe/agents/*.toml`, `task` tool) but are text-only, single-hop,
+  and simpler. If the skill's essence is deep agent trees with per-agent tool
+  allow-lists and inter-agent messaging, that architecture does not survive.
+- **Claude plugin/platform APIs** — `.claude-plugin/` manifests, marketplace
+  mechanics, `plugin.json` commands/hooks registries. No equivalent exists.
+- **MCP servers bundled with the skill** — Vibe Code supports MCP config
+  (`.vibe/mcp.json`), Vibe Work uses Connectors instead; a skill that *ships*
+  an MCP server must have that server deployed somewhere reachable, which is
+  out of scope for a skill port. Report it as infrastructure, not skill logic.
+- **Filesystem-heavy workflows for the Work target** — scripts that iterate
+  over local directories, watch files, or shell out to local tools. Work has
+  no filesystem; inlining cannot rescue a workflow whose every step needs a
+  local disk.
+- **Model-specific behavior** — skills tuned to Claude model quirks (e.g.
+  `model: opus` persona calibration, Claude-specific token/limit assumptions).
+  Behavior may transfer imperfectly; say so.
+
+### Partial portability (port what survives, report the rest)
+
+A skill is usually a mix: domain knowledge (portable), workflow shape
+  (usually portable), execution plumbing (sometimes not). In that case:
+
+1. Port the portable majority.
+2. For each unportable element, state: **what it did on the source platform,
+   why it cannot run on the target, what the converted skill does instead**
+   (degraded mode, manual step, or omission).
+3. Never silently substitute a made-up "equivalent". A `[porter note]`
+   explaining the gap is worth more than a fake bridge.
+
+### Refusal protocol
+
+If, after assessment, the skill's core value is unportable, **say so plainly**:
+"This skill cannot be meaningfully ported to <target> because <reason>. The
+parts that survive are <list>; here is what that reduced skill looks like —
+want it?" Do not deliver a full-looking package whose centerpiece is dead.
+The user explicitly prefers an honest "no" over a conversion that pretends.
+
 ## The three Mistral targets (pick from user intent, ask only if unclear)
 
 | Target | Where it runs | What you deliver |
@@ -137,6 +188,15 @@ JSON for `POST /v2/skills`:
 
 ## Workflow (follow in order)
 
+0. **Feasibility gate** — before any conversion, run the rule-zero
+   assessment: scan the package for hard blockers (hooks, deep multi-agent
+   orchestration, plugin APIs, bundled MCP servers, filesystem-bound flows,
+   model-specific tuning) against the chosen target. Report one of:
+   **portable** / **partially portable** (list what survives and what does
+   not, with reasons) / **not portable** (explain the blocker and what a
+   reduced version would look like). Only proceed to rewriting when the
+   user knows what will and will not survive. Do not start converting
+   something whose core is unportable without saying so first.
 1. **Ingest** — read every file the user provides (pasted text, uploaded
    folder, or a repo path). If pieces are missing (e.g. SKILL.md references
    `references/foo.md` that was not supplied), list them and ask.
@@ -163,6 +223,9 @@ JSON for `POST /v2/skills`:
 
 - Blind-copying the folder and hoping — the skill loads but "misbehaves"
   precisely because tool names and commands don't exist on Mistral.
+- Force-porting: converting around a hard blocker and shipping a package
+  whose central mechanism (hook, agent tree, MCP dependency) is dead on the
+  target. An honest "not portable" or a reduced port is the correct output.
 - Rewriting the description into something shorter and vaguer — you destroy
   the skill's activation.
 - Dropping `references/` to "save space" — progressive disclosure loads them
