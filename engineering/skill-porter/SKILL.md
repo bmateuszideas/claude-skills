@@ -38,6 +38,8 @@ same intent?" Often the same result is reachable by a different route
 | Bundled MCP servers | Vibe Code: `.vibe/mcp.json` config; Work: Connectors. The *server* is infrastructure, not skill logic — port the skill to consume the tools, and tell the user the server must be deployed/configured separately. |
 | `.claude-plugin/` manifest, marketplace | No equivalent. Drop; the skill itself is the unit on Mistral. |
 | Per-tool permission policies | Vibe agents' `[tools.<name>] permission` tables and skill-level `allowed-tools` frontmatter. |
+| Shell/env variables embedded in body text and paths (`${RESEARCH_DIR}`, `$(date +%Y-%m-%d)`, `~/.pulse_sessions/`) | These assume a shell + persistent filesystem. CLI target: keep, they work under `bash`. Work/API target: replace every one — output paths become "produce the briefing in the chat/Canvas", state directories become conversation state (see stateful scripts below). Never leave a `${VAR}` reference in a Work body. |
+| **Stateful scripts** (a script whose *value* is persisting state across workflow steps: counters, session logs, dedup caches, e.g. `citation_tracker.py` writing `~/.pulse_sessions/<id>.json`) | CLI: keep as-is. Work/API: the filesystem persistence is unportable — port the *tally* into the body as an explicit "running state" pattern the model maintains in the conversation (e.g. a three-count table: queries sent / sources received / sources cited, updated at each phase). Name the pattern in the report; do not attach the script and pretend it runs. |
 | `model:` field (persona tuned to a specific Claude model) | Drop the pin; note behavioral calibration may shift and watch for it in self-review. |
 | `context: fork` on an agent (subagent runs in a forked session) | Vibe subagents run as fresh independent sessions by design — the isolation intent is already the default; drop the field and verify the agent's prompt is self-contained (no reliance on parent-session state). |
 | Platform branding in the body ("Claude Code", "this plugin", "works with Codex") | Rewrite to the target's name ("Vibe", "this skill") or neutral "your agent". Also sweep asset/template filenames like CLAUDE.md.template: keep the file if it seeds an AGENTS.md-style instruction doc, but rename or re-point it (Vibe reads AGENTS.md, not CLAUDE.md) and update every reference to it. |
@@ -64,7 +66,7 @@ same intent?" Often the same result is reachable by a different route
 
 ## Non-negotiable format rules (hard Mistral validation)
 
-1. **`name`**: 1–64 chars, only `a-z`, `0-9`, hyphens. No uppercase, no leading/trailing hyphen, no double hyphens. Must match the parent folder name. If the source name violates this (e.g. `MySkill`, `pdf--tools`), rewrite it and tell the user.
+1. **`name`**: 1–64 chars, only `a-z`, `0-9`, hyphens. No uppercase, no leading/trailing hyphen, no double hyphens. Must match the parent folder name. If the source name violates this (e.g. `MySkill`, `pdf--tools`, or a namespaced command like `cs:pulse` — colons are illegal), rewrite it (e.g. `cs-pulse`) and tell the user.
 2. **`description`**: 1–1024 chars, non-empty. This is the **activation trigger**. Rewrite it as "Use when …" with the skill's concrete trigger phrases — a Mistral model decides from this text alone whether to load the skill. Vague descriptions ("Helps with PDFs") are failures.
 3. **Frontmatter fields** for the Vibe Code target: `name`, `description`, optionally `license`, `compatibility`, `metadata`, `allowed-tools`, `user-invocable`, `disable-model-invocation`. Drop all Claude-specific fields (e.g. nested `metadata.author` blocks are fine, but no Claude plugin fields).
 4. **For Vibe Work / Skills API**: no `allowed-tools`, no `user-invocable` — Work activates skills by description matching and `/name`; there are no CLI tool names to allow-list. Strip them.
@@ -202,8 +204,13 @@ JSON for `POST /v2/skills`:
    re-check the name/description constraints.
 6. **Deliver** — the converted package plus a **port report**: what was
    changed (frontmatter, tool calls, commands→skills, agents→TOML, scripts
-   inlined/kept/dropped), what could not be ported and why, and the exact
-   import steps for the chosen target.
+   inlined/kept/dropped, env-var/state rewrites), what could not be ported
+   and why, the estimated surviving usefulness (content and environment),
+   and the exact import steps for the chosen target. When the source
+   carried provenance notes (e.g. `.claude-plugin/authoring-notes.json`),
+   preserve the traceability in the frontmatter `metadata:` block (e.g.
+   `ported_from: claude-code/pulse`, `source_spec: …`) so the skill keeps
+   its history instead of losing it with the dropped plugin folder.
 
 ## Anti-patterns
 
