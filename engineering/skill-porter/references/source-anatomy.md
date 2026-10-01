@@ -57,6 +57,48 @@ Notes:
 - Bodies may still casually reference Claude-style tool names — always run
   the tool-name sweep regardless of platform.
 
+
+## Real examples (verbatim from actual Claude packages)
+
+**`commands/*.md` frontmatter** — note `argument-hint` and `$ARGUMENTS` (no `name` field; the filename is the command name):
+
+```yaml
+---
+description: Top-level product-team router. Classifies a product inquiry across 16 lanes (prioritization, OKRs, UX, ...) with a deterministic script and forks context to the right sub-skill via the product-skills orchestrator, returning a ≤200-word digest with one grill challenge.
+argument-hint: "<product inquiry: prioritize features, plan an experiment, discovery health, etc.>"
+---
+```
+Body invokes with `$ARGUMENTS` and may run `python3 <package>/scripts/<router>.py --text "$ARGUMENTS" --output json` (path shape, not a real file).
+
+**`agents/*.md` frontmatter** — note `tools:` (Claude names), `model:` pin, no `context: fork` here means shared session (when present it means a fresh isolated session):
+
+```yaml
+---
+name: cs-product-orchestrator
+description: Outcome-first product lead. Routes product inquiries (...) to the right sub-skill via the product-skills orchestrator, and drives the continuous-discovery loop with machine gates (cadence tracker + OST linter). Forks context to keep heavy intake out of the parent thread.
+tools: Read, Write, Edit, Glob, Grep, Bash, Skill
+model: sonnet
+---
+```
+The body below the frontmatter is the persona system prompt.
+
+**`.claude-plugin/plugin.json`** (verbatim):
+
+```json
+{
+  "name": "agile-product-owner",
+  "description": "Agile product ownership ...",
+  "version": "2.9.0",
+  "author": {"name": "Alireza Rezvani", "url": "https://alirezarezvani.com"},
+  "homepage": "https://github.com/alirezarezvani/claude-skills/tree/main/product-team/agile-product-owner",
+  "repository": "https://github.com/alirezarezvani/claude-skills",
+  "license": "MIT",
+  "skills": ["./skills"]
+}
+```
+
+**A package with hooks** (`engineering/human-gate` in this repo): the SKILL.md body references hook config JSON (e.g. a `Stop` event hook that halts the turn for human approval). Detect hook-event names in body text and in any `.json`/`.toml` hook config files shipped in the folder.
+
 ## Reading order when ingesting
 
 1. SKILL.md (frontmatter + body) — the contract.
