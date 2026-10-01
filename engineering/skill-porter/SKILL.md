@@ -17,56 +17,49 @@ intelligence work, not a file copy: you must understand **what the skill is
 trying to accomplish**, then re-express it so a Mistral model executes it
 correctly.
 
-## Rule zero: do not force-port — assess feasibility first
+## Rule zero: map capabilities intelligently — never force-port, never auto-reject
 
-Mistral is not a replica of Anthropic's platform. Some Claude skills depend on
-infrastructure that does not exist on Mistral, and a forced port produces a
-package that *looks* converted but silently fails. Before rewriting anything,
-run a **feasibility assessment** and report it honestly.
+Mistral is not a replica of Anthropic's platform — but it is not a barren
+subset either. Mistral Vibe has its own hooks, subagents, MCP support and
+permission system; they are younger and smaller than Anthropic's pioneers,
+so a Claude skill's mechanisms will rarely map one-to-one. Your job is
+**capability mapping**, not gatekeeping: for every mechanism the source skill
+uses, ask "what is this *for*, and how can the Mistral target express the
+same intent?" Often the same result is reachable by a different route
+(a − b may equal a + c). Only after mapping do you judge what survives.
 
-### Hard blockers (skill cannot be ported to the chosen target)
+### Capability map (Claude mechanism → Mistral expression)
 
-- **Claude Code hooks** (`PreToolUse`, `PostToolUse`, `hooks/*.json`) — Vibe
-  Work and the Skills API have no hook mechanism; only Vibe Code has limited
-  hook config. A skill whose core value is a hook is unportable to Work/API.
-- **Multi-agent orchestration beyond one hop** — Claude `Task` subagents that
-  spawn further subagents with tool permissions per agent. Mistral subagents
-  exist (`.vibe/agents/*.toml`, `task` tool) but are text-only, single-hop,
-  and simpler. If the skill's essence is deep agent trees with per-agent tool
-  allow-lists and inter-agent messaging, that architecture does not survive.
-- **Claude plugin/platform APIs** — `.claude-plugin/` manifests, marketplace
-  mechanics, `plugin.json` commands/hooks registries. No equivalent exists.
-- **MCP servers bundled with the skill** — Vibe Code supports MCP config
-  (`.vibe/mcp.json`), Vibe Work uses Connectors instead; a skill that *ships*
-  an MCP server must have that server deployed somewhere reachable, which is
-  out of scope for a skill port. Report it as infrastructure, not skill logic.
-- **Filesystem-heavy workflows for the Work target** — scripts that iterate
-  over local directories, watch files, or shell out to local tools. Work has
-  no filesystem; inlining cannot rescue a workflow whose every step needs a
-  local disk.
-- **Model-specific behavior** — skills tuned to Claude model quirks (e.g.
-  `model: opus` persona calibration, Claude-specific token/limit assumptions).
-  Behavior may transfer imperfectly; say so.
+| Claude mechanism | Mistral expression — use it when it covers the intent |
+|---|---|
+| `PreToolUse` / `PostToolUse` hooks | Vibe Code `hooks.toml`: `pre_tool` (deny or **rewrite tool arguments**), `post_tool` (replace/append output, audit). Subagents inherit hooks. Work/API targets: no hooks — fold the hook's *policy* into the SKILL.md body as explicit rules the model enforces itself. |
+| Lifecycle hooks (SessionStart, Stop, UserPromptSubmit, PreCompact, Notification) | Vibe has `post_agent` (fires after each assistant turn; can deny with a reason → retry). Others have no event twin: re-express as body instructions (e.g. a "at session start, first do X" checklist) or a scheduled/manual step. |
+| `Task` subagent trees (multi-hop, per-agent tool allow-lists, inter-agent messaging) | Vibe subagents exist: `.vibe/agents/<name>.toml` (`agent_type = "agent"|"subagent"`, `enabled_tools`, `disabled_tools`, permissions, `system_prompt_id`) spawned via the `task` tool — text-only results, single hop. Map shallow trees directly; for deep trees, flatten into sequential `task` calls orchestrated by the main agent, or inline the persona as a body section. |
+| Bundled MCP servers | Vibe Code: `.vibe/mcp.json` config; Work: Connectors. The *server* is infrastructure, not skill logic — port the skill to consume the tools, and tell the user the server must be deployed/configured separately. |
+| `.claude-plugin/` manifest, marketplace | No equivalent. Drop; the skill itself is the unit on Mistral. |
+| Per-tool permission policies | Vibe agents' `[tools.<name>] permission` tables and skill-level `allowed-tools` frontmatter. |
+| `model:` field (persona tuned to a specific Claude model) | Drop the pin; note behavioral calibration may shift and watch for it in self-review. |
 
-### Partial portability (port what survives, report the rest)
+### How to reason (the part no table can do for you)
 
-A skill is usually a mix: domain knowledge (portable), workflow shape
-  (usually portable), execution plumbing (sometimes not). In that case:
+1. **Intent first.** For each mechanism, name the user-visible job it does
+   ("block dangerous shell commands", "inject project context at start",
+   "fan out research across 3 personas").
+2. **Search the target for an expression of that intent** — direct twin,
+   different route, or body-instruction the model itself enforces.
+3. **Compose.** One Claude mechanism may need two Mistral pieces (hook →
+   `pre_tool` + a body rule); several Claude mechanisms may collapse into one.
+4. **Score honestly.** Estimate what fraction of the skill's *usefulness*
+   survives (not its file count). 90%? Port, and say what the missing 10% was.
+   50%? Port, and mark the degraded paths clearly in the body. Core mechanism
+   genuinely unexpressible? Say so — but only after you have tried the map,
+   not because the file mentioned a hook and you flinched.
 
-1. Port the portable majority.
-2. For each unportable element, state: **what it did on the source platform,
-   why it cannot run on the target, what the converted skill does instead**
-   (degraded mode, manual step, or omission).
-3. Never silently substitute a made-up "equivalent". A `[porter note]`
-   explaining the gap is worth more than a fake bridge.
-
-### Refusal protocol
-
-If, after assessment, the skill's core value is unportable, **say so plainly**:
-"This skill cannot be meaningfully ported to <target> because <reason>. The
-parts that survive are <list>; here is what that reduced skill looks like —
-want it?" Do not deliver a full-looking package whose centerpiece is dead.
-The user explicitly prefers an honest "no" over a conversion that pretends.
+Do **not** auto-reject a skill just because it contains Claude-specific
+buzzwords (hooks, agents, plugins). Most skills carry portable domain
+knowledge plus a thin layer of plumbing — the plumbing is what you map. A
+forced port that ships a dead centerpiece is a failure; so is a lazy refusal
+of an 80%-portable skill. Deliver the honest maximum.
 
 ## The three Mistral targets (pick from user intent, ask only if unclear)
 
@@ -188,15 +181,13 @@ JSON for `POST /v2/skills`:
 
 ## Workflow (follow in order)
 
-0. **Feasibility gate** — before any conversion, run the rule-zero
-   assessment: scan the package for hard blockers (hooks, deep multi-agent
-   orchestration, plugin APIs, bundled MCP servers, filesystem-bound flows,
-   model-specific tuning) against the chosen target. Report one of:
-   **portable** / **partially portable** (list what survives and what does
-   not, with reasons) / **not portable** (explain the blocker and what a
-   reduced version would look like). Only proceed to rewriting when the
-   user knows what will and will not survive. Do not start converting
-   something whose core is unportable without saying so first.
+0. **Capability mapping** — before converting, run the rule-zero mapping:
+   for every mechanism the package uses (hooks, agents, MCP, permissions),
+   find its Mistral expression per the capability map, or a different route
+   to the same intent. Then report the estimated surviving usefulness and
+   what you mapped to what — before you start rewriting, so the user knows
+   what the port will and will not include. Never auto-reject on buzzwords;
+   never force-port around a genuinely unexpressible core.
 1. **Ingest** — read every file the user provides (pasted text, uploaded
    folder, or a repo path). If pieces are missing (e.g. SKILL.md references
    `references/foo.md` that was not supplied), list them and ask.
@@ -223,9 +214,10 @@ JSON for `POST /v2/skills`:
 
 - Blind-copying the folder and hoping — the skill loads but "misbehaves"
   precisely because tool names and commands don't exist on Mistral.
-- Force-porting: converting around a hard blocker and shipping a package
-  whose central mechanism (hook, agent tree, MCP dependency) is dead on the
-  target. An honest "not portable" or a reduced port is the correct output.
+- Auto-rejecting because the package mentions hooks or multi-agent flows —
+  Mistral has hooks (`.vibe/hooks.toml`), subagents, and MCP; map first.
+- Force-porting around a genuinely dead centerpiece without telling the
+  user — the mirror failure of auto-rejection.
 - Rewriting the description into something shorter and vaguer — you destroy
   the skill's activation.
 - Dropping `references/` to "save space" — progressive disclosure loads them

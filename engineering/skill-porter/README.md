@@ -70,16 +70,27 @@ teaches: small resident core, details on demand.
 
 ## 3. The conversion pipeline the skill encodes
 
+The pipeline the skill encodes starts with **capability mapping (step 0)**:
+Mistral Vibe is younger than Claude Code but not a subset — it has its own
+hooks (`.vibe/hooks.toml`: `pre_tool` with argument rewriting, `post_tool`,
+`post_agent`), subagents (`.vibe/agents/*.toml` + `task` tool), MCP
+(`.vibe/mcp.json`), and per-tool permissions. The skill teaches the model to
+map every source mechanism to a Mistral expression of the same *intent*
+(same result by a different route), score the surviving usefulness honestly,
+and neither auto-reject on Claude buzzwords nor force-port around a dead
+centerpiece.
+
 ```
- INPUT                     UNDERSTAND                REWRITE                 DELIVER
-┌─────────────────┐   ┌──────────────────┐   ┌───────────────────┐   ┌──────────────┐
-│ Claude or Codex │ → │ identify platform │ → │ frontmatter fix    │ → │ target folder │
-│ skill package   │   │ read every file   │   │ tool-call rewrite  │   │ + port report │
-│ SKILL.md +      │   │ state the purpose │   │ commands → skills  │   │ (Work / CLI / │
-│ scripts/referen- │   │ classify items    │   │ agents → TOML/per- │   │  API JSON)    │
-│ ces/assets/cmds/ │   │                   │   │ sona, scripts →    │   └──────────────┘
-│ agents/          │   │                   │   │ keep|inline|flag   │   + self-review
-└─────────────────┘   └──────────────────┘   └───────────────────┘
+ MAP                       INPUT → UNDERSTAND → REWRITE → DELIVER
+┌───────────────────┐
+│ capability mapping │   ┌─────────────────┐   ┌──────────────────┐   ┌───────────────────┐   ┌──────────────┐
+│ mechanism → intent │ → │ Claude or Codex │ → │ identify platform │ → │ frontmatter fix    │ → │ target folder │
+│ → Mistral twin or  │   │ skill package   │   │ read every file   │   │ tool-call rewrite  │   │ + port report │
+│ different route;   │   │ SKILL.md +      │   │ state the purpose │   │ commands → skills  │   │ (Work / CLI / │
+│ score usefulness,  │   │ scripts/referen- │   │ classify items    │   │ agents → TOML/per- │   │  API JSON)    │
+│ report honestly    │   │ ces/assets/cmds/ │   │                   │   │ sona, scripts →    │   └──────────────┘
+└───────────────────┘   │ agents/          │   │                   │   │ keep|inline|flag   │   + self-review
+                        └─────────────────┘   └──────────────────┘   └───────────────────┘
 ```
 
 Per-item decision matrix taught by the skill:
