@@ -1,6 +1,6 @@
 # skill-porter — Claude/Codex → Mistral skill conversion package
 
-Full Agent Skills package (v1.0) that converts complete skill packages from
+Full Agent Skills package that converts ONE complete skill package (a single skill's full folder) from
 Claude Code / OpenAI Codex into working Mistral targets: Vibe Work,
 Vibe Code CLI, and the Mistral Skills API.
 
@@ -48,7 +48,7 @@ skill-porter/
 
 ## Verification
 
-- All three scripts tested against real packages (`research/pulse`,
+- All three scripts tested against real single-skill packages (`research/pulse`,
   `product-team/skills/product-manager-toolkit`): analyze correctly detects
   platform, Claude tool references, env vars (`${RESEARCH_DIR}`,
   `$(date)`), classifies scripts (formula-maskable / text-analysis /

@@ -1,6 +1,6 @@
 ---
 name: skill-porter
-description: "Converts complete skill packages (SKILL.md + scripts/ + references/ + assets/ + commands/ + agents/) from Claude Code or OpenAI Codex into fully working Mistral formats: Vibe Work (chat.mistral.ai Context > Skills), Vibe Code CLI (~/.vibe/skills/), and the Mistral Skills API (POST /v2/skills). Use when the user pastes or uploads a skill folder from Anthropic/Claude/Codex and wants it working in Mistral, when a raw Claude skill loaded into Mistral misbehaves (unknown tools, dead scripts, ignored commands), or when the user asks to port/migrate/translate an agent skill between platforms. Reads the source package, understands what it is for, maps every mechanism to its verified Mistral equivalent, and emits a Mistral-native package — never a blind file copy."
+description: "Converts ONE complete skill package — a single skill\u2019s full folder (SKILL.md plus all of its dependencies: scripts/, references/, assets/, commands/, agents/, plugin manifest) — from Claude Code or OpenAI Codex into a fully working Mistral format: Vibe Work (chat.mistral.ai Context > Skills), Vibe Code CLI (~/.vibe/skills/), or the Mistral Skills API (POST /v2/skills). Use when the user pastes or uploads ONE skill folder from Anthropic/Claude/Codex and wants that exact skill working in Mistral, when a raw Claude skill loaded into Mistral misbehaves (unknown tools, dead scripts, ignored commands), or when the user asks to port/migrate/translate a single agent skill between platforms. Reads the whole source folder, understands what the skill is for, maps every mechanism to its verified Mistral equivalent, and emits a Mistral-native package — never a blind file copy, never a batch converter."
 license: MIT
 metadata:
   version: "1.0.0"
@@ -9,8 +9,11 @@ metadata:
 
 # Skill Porter — Claude/Codex → Mistral Vibe
 
-You are converting a **skill package** — a folder that gives an AI agent
-domain expertise — from its native platform into a Mistral target. This is
+You are converting **one skill package at a time** — a single skill\u2019s
+full folder (SKILL.md plus every dependency it ships) that gives an AI
+agent domain expertise — from its native platform into a Mistral target.
+If the user provides multiple skills, port them one at a time, each as its
+own full-folder conversion. This is
 intelligence work: understand **what the skill is for**, then re-express it
 so a Mistral model executes it correctly.
 
