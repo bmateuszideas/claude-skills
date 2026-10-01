@@ -26,6 +26,13 @@ CLAUDE_HOOK_EVENTS = [
     "PreToolUse", "PostToolUse", "SessionStart", "Stop",
     "UserPromptSubmit", "Notification", "PreCompact",
 ]
+TOOL_USE_RES = [re.compile(p) for p in (
+    r"`{t}`",
+    r"\bthe {t} tool\b",
+    r"\buse the {t}\b",
+    r"\b{t} tool\b",
+    r"\b{t}\(".replace("\\\\", "\\\\\\\\"),
+)]
 ENV_VAR_RE = re.compile(r"\$\{[A-Z_][A-Z0-9_]*\}|\$\(date[^)]*\)|~/\.[A-Za-z_]+")
 SHELL_BLOCK_RE = re.compile(r"```(?:bash|sh|shell)\n(.*?)```", re.DOTALL)
 FRONTMATTER_RE = re.compile(r"\A---\n(.*?)\n---\n", re.DOTALL)
@@ -96,8 +103,12 @@ def main() -> int:
     if (root / "agents" / "openai.yaml").is_file():
         platform = "codex"
 
-    tools_found = sorted({t for t in CLAUDE_TOOLS
-                          if re.search(rf"\b{t}\b", combined)})
+    def tool_referenced(tool: str) -> bool:
+        patterns = (rf"`{tool}`", rf"\bthe {tool} tool\b",
+                    rf"\buse the {tool}\b", rf"\b{tool} tool\b")
+        return any(re.search(p, combined) for p in patterns)
+
+    tools_found = sorted(t for t in CLAUDE_TOOLS if tool_referenced(t))
     hooks_found = sorted({h for h in CLAUDE_HOOK_EVENTS
                           if re.search(rf"\b{h}\b", combined)})
     env_vars = sorted(set(ENV_VAR_RE.findall(combined)))

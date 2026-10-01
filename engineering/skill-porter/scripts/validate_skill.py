@@ -79,7 +79,7 @@ def main() -> int:
             errors.append(f"name: length {len(name)} outside 1-64")
         if not NAME_RE.fullmatch(name):
             errors.append(f"name '{name}': violates ^[a-z0-9]+(-[a-z0-9]+)*$")
-        if name != root.name:
+        if root.name and name != root.name:
             errors.append(f"name '{name}' != parent directory '{root.name}'")
         if name in RESERVED_NAMES:
             errors.append(f"name '{name}' is a reserved builtin")
@@ -97,11 +97,25 @@ def main() -> int:
     if lines > 500:
         warnings.append(f"body is {lines} lines (recommended <500) — split into references/")
 
-    # file references resolve
-    for ref in sorted(set(REF_RE.findall(body))):
-        target = (root / ref.split("#")[0].rstrip("/")).resolve()
-        if not target.exists():
-            errors.append(f"referenced file missing: {ref}")
+    # file references resolve (body + every reference/asset file).
+    # In supporting files, ignore fenced code blocks (illustrative examples)
+    # and require a file extension — folder-name prose is not a reference.
+    FENCE_RE = re.compile(r"```.*?```", re.DOTALL)
+    scan_files = [("SKILL.md", body)]
+    for sub in ("references", "assets"):
+        sub_dir = root / sub
+        if sub_dir.is_dir():
+            for p in sorted(sub_dir.rglob("*.md")):
+                scan_files.append((str(p.relative_to(root)), p.read_text(encoding="utf-8", errors="replace")))
+    for src_name, src_body in scan_files:
+        if src_name != "SKILL.md":
+            src_body = FENCE_RE.sub("", src_body)
+        for ref in sorted(set(REF_RE.findall(src_body))):
+            if src_name != "SKILL.md" and "." not in ref.rsplit("/", 1)[-1]:
+                continue
+            target = (root / ref.split("#")[0].rstrip("/")).resolve()
+            if not target.exists():
+                errors.append(f"referenced file missing: {ref} (referenced from {src_name})")
 
     if args.target == "vibe-work":
         bad = CLI_ONLY_FIELDS & set(fm.keys())

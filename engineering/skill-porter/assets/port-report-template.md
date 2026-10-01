@@ -16,7 +16,7 @@ Fill this after every conversion and deliver it with the package.
 | Source mechanism | Intent | Target expression |
 |---|---|---|
 | e.g. `PreToolUse` hook `security-guard.json` | block dangerous bash before run | CLI: `hooks.toml` `pre_tool` (deny + reason); Work: body rule "never run rm -rf…" |
-| e.g. `scripts/rice_prioritizer.py` | deterministic RICE ranking | Work: Code Interpreter run on uploaded CSV (fallback: formula in body) |
+| e.g. `scripts/<calculator>.py` | deterministic ranking | Work: Code Interpreter run on uploaded CSV (fallback: formula in body) |
 
 ### What could not be ported (and why)
 

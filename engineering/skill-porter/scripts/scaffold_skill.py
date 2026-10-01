@@ -128,15 +128,15 @@ def main() -> int:
                 actions.append(f"copied {sub}/")
 
         if args.target == "vibe-work":
-            refs = skill_dir / "references"
-            if refs.is_dir():
-                count = len([p for p in refs.rglob("*") if p.is_file()]) + \
-                        len([p for p in (skill_dir / "assets").rglob("*") if p.is_file()]) \
-                        if (skill_dir / "assets").is_dir() else \
-                        len([p for p in refs.rglob("*") if p.is_file()])
-                if count > MERGE_CAP:
-                    warnings.append(
-                        f"{count} attached files exceed the ~{MERGE_CAP} guideline — merge related references and repoint ALL cross-file references")
+            attachment_count = 0
+            for sub in ("references", "assets"):
+                sub_dir = skill_dir / sub
+                if sub_dir.is_dir():
+                    attachment_count += sum(
+                        1 for p in sub_dir.rglob("*") if p.is_file())
+            if attachment_count > MERGE_CAP:
+                warnings.append(
+                    f"{attachment_count} attached files exceed the ~{MERGE_CAP} guideline — merge related references and repoint ALL cross-file references")
             if (src / "scripts").is_dir():
                 shutil.copytree(src / "scripts", skill_dir / "scripts",
                                 dirs_exist_ok=True)
