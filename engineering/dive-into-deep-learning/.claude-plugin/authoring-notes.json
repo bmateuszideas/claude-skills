@@ -1,0 +1,12 @@
+{
+  "source": {
+    "spec": "User request: compile Dive into Deep Learning (d2l.ai) into a shareable book skill using the book-to-skill pipeline shape.",
+    "build_pattern": "Follows the book-to-skill OUTPUT SHAPE (master SKILL.md under 4k tokens with chapter index and topic index, chapters/chNN-*.md, glossary.md, patterns.md, cheatsheet.md — validated by book_to_skill's book_skill_validator.py). Source was cloned locally (d2l-ai/d2l-en @ main, chapter_* markdown, depth 1), extracted with extract_document.py, and synthesized chapter by chapter with bounded reads; each chapter file adds a '2026 delta' section. Chapter numbering follows the book's TOC (index.md); the bibliography chapter is not compiled.",
+    "distinct_from": "engineering/deep-learning-book (Goodfellow et al. 2016 companion — theory depth); engineering/spinning-up-deep-rl (RL-specific); engineering/book-to-skill (the converter itself, not an artifact)."
+  },
+  "attribution": {
+    "source_work": "Dive into Deep Learning, Aston Zhang, Zachary C. Lipton, Mu Li, Alexander J. Smola — https://d2l.ai, source https://github.com/d2l-ai/d2l-en. Text licensed CC BY-SA 4.0; sample code MIT. All rights remain with the authors. This package is adapted material under CC BY-SA 4.0 and is not endorsed by the authors.",
+    "rights_basis": "open-license (CC BY-SA 4.0). The source is explicitly open (CC BY-SA text, MIT code), so a shareable adapted package is permitted provided attribution is given and the adaptation is shared under CC BY-SA 4.0 — hence plugin license CC-BY-SA-4.0 and the included LICENSE files. Even so, the package contains no reproduced source text: every chapter file is original synthesis (structure, formulas, code idioms, gotchas, 2026 delta), not copied passages. See skills/dive-into-deep-learning/references/rights_and_provenance.md.",
+    "evidence_discipline": "Chapter files separate what the book says (with chapter refs) from the 2026 delta (marked as such), so readers can tell book content from post-publication developments."
+  }
+}
