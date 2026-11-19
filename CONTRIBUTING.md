@@ -227,6 +227,15 @@ Contributors are credited via:
 
 ## Questions?
 
+> **Note for this fork (`bmateuszideas/claude-skills`):** Issues and Discussions are disabled here, and GitHub Actions do not run in this fork. Use the upstream links below for bugs and questions, or open a PR directly. Before opening a PR, run the CI quality-gate checks locally:
+>
+> ```bash
+> python3 scripts/check_frontmatter.py --all
+> python3 scripts/check_skill_names.py --all
+> python3 scripts/audit_skills.py
+> python3 scripts/smoke_scripts.py
+> ```
+
 - **General:** Open a [discussion](https://github.com/alirezarezvani/claude-skills/discussions)
 - **Bugs:** Use the [issue tracker](https://github.com/alirezarezvani/claude-skills/issues)
 - **Contact:** [alirezarezvani.com](https://alirezarezvani.com)
