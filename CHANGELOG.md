@@ -7,6 +7,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added — engineering/dive-into-deep-learning: Dive into Deep Learning (d2l.ai) compiled into a knowledge-base plugin
+
+Compiled from the open-source `d2l-ai/d2l-en` repo (text CC BY-SA 4.0, sample code MIT — full
+license texts shipped in the plugin). 26 chapter files follow the book's TOC: preliminaries,
+linear models, MLPs, CNNs (LeNet → AlexNet/VGG/GoogLeNet/ResNet/DenseNet + BatchNorm),
+RNNs/LSTM/GRU/seq2seq, attention & transformers (incl. ViT and BERT/GPT/T5 pretraining),
+optimization (SGD → AdamW + LR schedules), computational performance/multi-GPU, computer
+vision, NLP, RL, Gaussian processes, hyperparameter optimization, GANs, recommender systems,
+and the two appendices. Every chapter file carries a **2026 delta** section naming what changed
+since the book's 2023-era pins (transformers over RNNs, AdamW, diffusion over GANs, ViT/ConvNeXt,
+FlashAttention, RoPE...). Resident core SKILL.md (<4k tokens) with Chapter Index + Topic Index,
+plus glossary, patterns, cheatsheet, `cs-dive-into-dl-tutor` agent and
+`/cs:dive-into-deep-learning` command.
+
+- **Original synthesis, not a reproduction** — the package indexes the source and never copies
+  its text; see `skills/dive-into-deep-learning/references/rights_and_provenance.md`.
+- **Rights basis `open-license` (CC BY-SA 4.0)**: plugin.json `license: CC-BY-SA-4.0`, LICENSE
+  files included, attribution in README.
+- **Counters:** skills 388 → 389; references 842 → 843; agents 118 → 119; commands 150 → 151;
+  plugins 99 → 100 (verified via `scripts/derive_counters.py --check`).
+- **Validation:** `book_skill_validator.py --strict` passes; `check_frontmatter.py`,
+  `check_skill_names.py --all`, `check_plugin_json.py --all`, `audit_skills.py`,
+  `smoke_scripts.py` all clean.
+
 ### Added — engineering/spinning-up-deep-rl: the first book compiled by book-to-skill
 
 Knowledge-base plugin compiled end-to-end by `engineering/book-to-skill` from OpenAI's

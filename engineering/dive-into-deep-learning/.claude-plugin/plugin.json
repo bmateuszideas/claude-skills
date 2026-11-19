@@ -1,0 +1,15 @@
+{
+  "name": "dive-into-deep-learning",
+  "description": "Knowledge base compiled from Dive into Deep Learning (d2l.ai; Zhang, Lipton, Li & Smola, CC BY-SA 4.0, open source at d2l-ai/d2l-en). 26 chapter files covering the full modern deep-learning stack: linear models, MLPs, CNNs (LeNet to ResNet/DenseNet), RNNs/LSTM/GRU, attention and transformers (incl. ViT and BERT pretraining), optimization (SGD to AdamW with LR schedules), computational performance and multi-GPU training, computer vision, NLP, RL, Gaussian processes, hyperparameter optimization, GANs, and recommender systems — each chapter file adds a 2026 delta on what changed since the book. Original synthesis throughout: it indexes the source and never reproduces its text. Use when studying or teaching D2L, choosing an architecture/optimizer/loss for a task, debugging training runs, or checking whether the book's advice is still current.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Mateusz Baranowicz",
+    "url": "https://github.com/bmateuszideas"
+  },
+  "homepage": "https://github.com/bmateuszideas/claude-skills/tree/main/engineering/dive-into-deep-learning",
+  "repository": "https://github.com/bmateuszideas/claude-skills",
+  "license": "CC-BY-SA-4.0",
+  "skills": [
+    "./skills/dive-into-deep-learning"
+  ]
+}
